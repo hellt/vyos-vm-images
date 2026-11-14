@@ -3,6 +3,7 @@
 *.log
 
 # images
+.cache/
 *.img
 *.qcow2
 *.ova

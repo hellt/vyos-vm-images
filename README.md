@@ -1,54 +1,63 @@
 # vyos-vm-images
 
-[Ansible](https://www.ansible.com/) playbooks to build VyOS VM images.
+A fork of the archived vyos upstream repo that takes an iso image and does two things:
+
+1. bakes in cloud-init
+2. exports the disk image as qcow2.
+
+all using docker containers, with no other host requirements.
 
 ## Requirements
 
-You need a machine with at least 20 GB free space with Debian 10 (bare-metal, virtual, Docker container with --privileged flag). Also, you need to install ansible and python3 packages:
+Docker is the only host dependency. The build image is based on
+[`srl-labs/ansible-core`](https://github.com/srl-labs/ansible-core) and includes
+Ansible, QEMU, and the filesystem tools. The build container needs `--privileged`
+to mount the ISO and use loop devices; KVM is not required.
 
-```
-sudo apt update
-sudo apt install -y ansible python3
+## Build a QEMU image with cloud-init
+
+Run:
+
+```sh
+./build.sh
 ```
 
-If you want to build an OVA image, you also need `ovftool` from VMware. It should be downloaded from the [VMware site](https://code.vmware.com/tool/ovf). Also, you need a private key to sign an OVA file. It can be generated with the next command:
+The script builds the Docker image, downloads the VyOS 2026.03 ISO inside the
+container, and writes `images/vyos-2026.03-qemu.qcow2`. The ISO is cached in
+`.cache/vyos.iso` and reused by subsequent builds. Cloud-init is installed from
+the active VyOS rolling repository, without using the ISO's archived APT sources.
 
-```
-openssl req -x509 -nodes -sha256 -days 365 -newkey rsa:1024 -keyout myself.pem -out myself.pem
+The defaults can be changed without installing any additional tools:
+
+```sh
+VYOS_ISO_URL=https://community-downloads.vyos.dev/stream/2026.03/vyos-2026.03-generic-amd64.iso \
+DISK_SIZE=10 \
+CLOUD_INIT_DS=NoCloud,ConfigDrive,None \
+./build.sh
 ```
 
-All other requirements will be installed by ansible-playbook.
+Additional arguments are passed to `ansible-playbook`. For example:
 
+```sh
+./build.sh -e enable_ssh=true -e guest_agent=qemu
+```
 
-## Prepare
+Internally, the playbook runs with the equivalent of:
 
-You need to copy the ISO image with VyOS to `/tmp/vyos.iso` before running ansible-playbook. Resulting images also will be located inside `/tmp/` directory.
-
-### Docker
-The Dockerfile has all required dependencies.
-1. Download the `Dockerfile`
-```
-wget https://raw.githubusercontent.com/vyos/vyos-vm-images/current/Dockerfile
-```
-2. Build local image with name `vyos-vm-images` (only if you do not have it)
-```
-docker build --tag vyos-vm-images:latest -f ./Dockerfile .
-```
-3. Start and connect to the container:
-```shell
-docker run --rm -it --privileged -v $(pwd):/vm-build -v $(pwd)/images:/images -w /vm-build vyos-vm-images:latest bash
-```
-4. Clone repo
-```
-git clone https://github.com/vyos/vyos-vm-images.git && cd vyos-vm-images
+```sh
+ansible-playbook qemu.yml \
+  -e iso_local=/cache/vyos.iso \
+  -e disk_size=10 \
+  -e cloud_init=true \
+  -e cloud_init_ds=NoCloud,ConfigDrive,None
 ```
 
 ## Supported Platforms
 
-- QEMU
+- QEMU with cloud-init (Docker)
 
     ```
-    ansible-playbook qemu.yml
+    ./build.sh
     ```
 
 - VMware Cloud-init
