@@ -1,11 +1,13 @@
 # vyos-vm-images
 
-[Ansible](https://www.ansible.com/) playbooks to build VyOS VM images.
+A fork of the archived vyos upstream repo that takes an iso image and does two things:
+
+1. bakes in cloud-init
+2. exports the disk image as qcow2.
+
+all using docker containers, with no other host requirements.
 
 ## Requirements
-
-- Linux with Docker
-- At least 20 GB of free disk space
 
 Docker is the only host dependency. The build image is based on
 [`srl-labs/ansible-core`](https://github.com/srl-labs/ansible-core) and includes
@@ -49,8 +51,6 @@ ansible-playbook qemu.yml \
   -e cloud_init=true \
   -e cloud_init_ds=NoCloud,ConfigDrive,None
 ```
-
-For OVA builds, `ovftool` and a private signing key are still required.
 
 ## Supported Platforms
 
