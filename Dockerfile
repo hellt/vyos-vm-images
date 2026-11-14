@@ -1,38 +1,21 @@
-FROM debian:11.8
+FROM ghcr.io/srl-labs/ansible-core/2.15.9:py3.11
 
-# Install minimal dependencies
-RUN apt-get update && apt-get install -y \
-    ansible \
-    python3
+RUN ansible-galaxy collection install ansible.posix:1.5.4 community.general:8.5.0
 
-# Install required packages (from ansible role "install-packages")
-RUN apt-get update && apt-get install -y \
-    gdisk \
-    kpartx \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     dosfstools \
     e2fsprogs \
-    gnupg \
-    qemu-utils \
-    python3-lxml \
-    grub-efi-amd64 \
-    grub-efi-amd64-bin \
+    gdisk \
     grub-common \
-    isolinux \
+    grub-efi-amd64-bin \
+    kpartx \
+    python3-lxml \
     python3-requests \
+    qemu-utils \
     rsync \
-    unzip \
-    zlib1g-dev \
     squashfs-tools \
+    util-linux \
     xorriso \
-    build-essential
-
-# Install not required dependencies
-RUN apt-get install -y \
-    git \
-    mc \
-    nano \
     && rm -rf /var/lib/apt/lists/*
 
-# Make build directory
-RUN mkdir -p /home/build
-WORKDIR /home/build
+WORKDIR /ansible
